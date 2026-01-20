@@ -22,6 +22,7 @@ interface ItemFactura {
 interface Cliente {
   documento: string;
   nombre: string;
+  apellido: string;
   correo: string;
   telefono: string;
   direccion: string;
@@ -76,6 +77,7 @@ const facturaInicial: Factura = {
   cliente: {
     documento: "",
     nombre: "",
+    apellido: "",
     correo: "",
     telefono: "",
     direccion: "",
@@ -235,6 +237,7 @@ export default function CrearFactura() {
           cliente: {
             documento: cedula,
             nombre: docData.nombre || "",
+            apellido: docData.apellido || "",
             correo: docData.correo || "",
             telefono: docData.telefono || "",
             direccion: docData.direccion || "",
@@ -246,6 +249,7 @@ export default function CrearFactura() {
           cliente: {
             documento: cedula,
             nombre: "",
+            apellido: "",
             correo: "",
             telefono: "",
             direccion: "",
@@ -401,7 +405,11 @@ export default function CrearFactura() {
             <label className={labelClienteClass}>Nombre Cliente</label>
             <input
               type="text"
-              value={factura.cliente.nombre}
+              value={
+                clienteExistente
+                  ? `${factura.cliente.nombre} ${factura.cliente.apellido}`
+                  : factura.cliente.nombre
+              }
               onChange={(e) =>
                 setFactura({
                   ...factura,
@@ -469,6 +477,7 @@ export default function CrearFactura() {
                       cliente: {
                         documento: "",
                         nombre: "",
+                        apellido: "",
                         correo: "",
                         telefono: "",
                         direccion: "",
@@ -751,6 +760,7 @@ export default function CrearFactura() {
                   cliente: {
                     documento: "",
                     nombre: "",
+                    apellido: "",
                     correo: "",
                     telefono: "",
                     direccion: "",
@@ -789,6 +799,7 @@ export default function CrearFactura() {
                 cliente: {
                   documento: "",
                   nombre: "",
+                  apellido: "",
                   correo: "",
                   telefono: "",
                   direccion: "",

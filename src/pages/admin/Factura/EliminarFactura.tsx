@@ -39,6 +39,7 @@ interface Factura {
   cliente: {
     documento: string;
     nombre: string;
+    apellido: string;
     correo: string;
     telefono: string;
     direccion: string;
@@ -161,10 +162,10 @@ export default function EliminarFactura() {
             <div
               key={f.id}
               onClick={() => setFacturaSeleccionada(f)}
-              className="flex justify-between items-center p-4 border rounded-xl hover:bg-red-100 cursor-pointer"
+              className="flex justify-between items-center p-4 border rounded-xl hover:bg-red-100 cursor-pointer mb-3"
             >
               <div>
-                <p className="font-semibold">{f.cliente.nombre}</p>
+                <p className="font-semibold">{f.cliente.nombre} {f.cliente.apellido}</p>
                 <p className="text-sm">
                   {f.tipodocumento} - {f.numerodocumento}
                 </p>
@@ -234,7 +235,7 @@ export default function EliminarFactura() {
 
               <label className="font-bold">Nombre Cliente</label>
               <input
-                value={facturaSeleccionada.cliente.nombre}
+                value={`${facturaSeleccionada.cliente.nombre} ${facturaSeleccionada.cliente.apellido}`}
                 readOnly
                 className="border rounded-lg px-3 py-2 bg-gray-100"
               />
