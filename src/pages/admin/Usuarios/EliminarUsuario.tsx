@@ -24,7 +24,8 @@ interface Usuario {
 export default function EliminarUsuario() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [busqueda, setBusqueda] = useState("");
-  const [rolFiltro, setRolFiltro] = useState<"Cliente" | "Administrador" | "">("");
+  const [rolFiltro, setRolFiltro] = useState<string>("");
+  const [roles, setRoles] = useState<string[]>([]);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
 
   const [toastMessage, setToastMessage] = useState("");
@@ -49,13 +50,28 @@ export default function EliminarUsuario() {
     cargarUsuarios();
   }, []);
 
+  useEffect(() => {
+    const cargarRoles = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "roles"));
+        const listaRoles = snapshot.docs.map((doc) => doc.id);
+        setRoles(listaRoles);
+      } catch (error) {
+        console.error("Error cargando roles", error);
+      }
+    };
+    cargarRoles();
+  }, []);
+
   // Filtrar usuarios
   const sugerencias = usuarios.filter(
     (u) =>
       (u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         u.apellido.toLowerCase().includes(busqueda.toLowerCase()) ||
         u.correo.toLowerCase().includes(busqueda.toLowerCase())) &&
-      (rolFiltro ? u.rol === rolFiltro : true)
+      (rolFiltro
+      ? u.rol.trim().toLowerCase() === rolFiltro.trim().toLowerCase()
+      : true)
   );
 
   // Eliminar usuario
@@ -92,12 +108,15 @@ export default function EliminarUsuario() {
         />
         <select
           value={rolFiltro}
-          onChange={(e) => setRolFiltro(e.target.value as "Cliente" | "Administrador" | "")}
+          onChange={(e) => setRolFiltro(e.target.value)}
           className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
         >
           <option value="">Todos los roles</option>
-          <option value="Cliente">Cliente</option>
-          <option value="Administrador">Administrador</option>
+          {roles.map((rol) => (
+            <option key={rol} value={rol}>
+              {rol}
+            </option>
+          ))}
         </select>
       </div>
 

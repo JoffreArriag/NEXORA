@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../../firebase/firebase";
 
-/* ==================== TIPOS ==================== */
-
 interface Usuario {
   id: string;
   nombre: string;
   apellido: string;
   correo: string;
+  rol: string;
 }
 
 interface Historial {
@@ -19,16 +18,16 @@ interface Historial {
   monto?: number;
 }
 
-/* ==================== COMPONENTE ==================== */
-
 export default function HistorialUsuario() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [busqueda, setBusqueda] = useState("");
-  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
+  const [rolFiltro, setRolFiltro] = useState<string>("");
+  const [roles, setRoles] = useState<string[]>([]);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] =
+    useState<Usuario | null>(null);
   const [historial, setHistorial] = useState<Historial[]>([]);
   const [loading, setLoading] = useState(false);
 
-  /* ==================== CARGAR USUARIOS ==================== */
   useEffect(() => {
     const cargarUsuarios = async () => {
       const snap = await getDocs(collection(db, "usuarios"));
@@ -43,7 +42,19 @@ export default function HistorialUsuario() {
     cargarUsuarios();
   }, []);
 
-  /* ==================== CARGAR HISTORIAL ==================== */
+  useEffect(() => {
+    const cargarRoles = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "roles"));
+        const listaRoles = snapshot.docs.map((doc) => doc.id);
+        setRoles(listaRoles);
+      } catch (error) {
+        console.error("Error cargando roles", error);
+      }
+    };
+    cargarRoles();
+  }, []);
+
   const cargarHistorial = async (usuarioId: string) => {
     setLoading(true);
 
@@ -64,36 +75,50 @@ export default function HistorialUsuario() {
     setLoading(false);
   };
 
-  /* ==================== FILTRO ==================== */
   const sugerencias = usuarios.filter(
     (u) =>
-      u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      u.apellido.toLowerCase().includes(busqueda.toLowerCase()) ||
-      u.correo.toLowerCase().includes(busqueda.toLowerCase())
+      (u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        u.apellido.toLowerCase().includes(busqueda.toLowerCase()) ||
+        u.correo.toLowerCase().includes(busqueda.toLowerCase())) &&
+      (rolFiltro
+        ? u.rol.trim().toLowerCase() === rolFiltro.trim().toLowerCase()
+        : true)
   );
 
-  /* ==================== UI ==================== */
   return (
     <div className="w-full h-full flex flex-col bg-transparent">
       <h2 className="text-3xl font-bold mb-6 text-neutral-950">
         Historial de Usuarios
       </h2>
 
-      {/* Buscador */}
-      <input
-        type="text"
-        placeholder="Buscar usuario..."
-        value={usuarioSeleccionado ? usuarioSeleccionado.nombre : busqueda}
-        onChange={(e) => {
-          setBusqueda(e.target.value);
-          setUsuarioSeleccionado(null);
-          setHistorial([]);
-        }}
-        className="border rounded-lg px-4 py-2 mb-6 focus:ring-2 focus:ring-red-500"
-      />
+      <div className="flex gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Buscar usuario..."
+          value={usuarioSeleccionado ? usuarioSeleccionado.nombre : busqueda}
+          onChange={(e) => {
+            setBusqueda(e.target.value);
+            setUsuarioSeleccionado(null);
+            setHistorial([]);
+          }}
+          className="flex-1 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-500"
+        />
+
+        <select
+          value={rolFiltro}
+          onChange={(e) => setRolFiltro(e.target.value)}
+          className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+        >
+          <option value="">Todos los roles</option>
+          {roles.map((rol) => (
+            <option key={rol} value={rol}>
+              {rol}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="bg-white/10 p-8 rounded-3xl min-h-[400px]">
-
         {/* LISTADO DE USUARIOS */}
         {!usuarioSeleccionado && (
           <div className="space-y-4">
@@ -108,7 +133,9 @@ export default function HistorialUsuario() {
                 className="p-4 border rounded-xl hover:bg-red-100 cursor-pointer flex justify-between"
               >
                 <div>
-                  <p className="font-semibold">{u.nombre} {u.apellido}</p>
+                  <p className="font-semibold">
+                    {u.nombre} {u.apellido}
+                  </p>
                   <p className="text-sm">{u.correo}</p>
                 </div>
                 <span className="text-sm text-gray-500">Ver historial</span>
@@ -120,9 +147,9 @@ export default function HistorialUsuario() {
         {/* HISTORIAL */}
         {usuarioSeleccionado && (
           <div className="space-y-6">
-
             <h3 className="text-xl font-bold">
-              Historial de {usuarioSeleccionado.nombre} {usuarioSeleccionado.apellido}
+              Historial de {usuarioSeleccionado.nombre}{" "}
+              {usuarioSeleccionado.apellido}
             </h3>
 
             {loading ? (
@@ -141,9 +168,7 @@ export default function HistorialUsuario() {
                     </div>
                     <p>{h.descripcion}</p>
                     {h.monto && (
-                      <p className="text-green-600 font-semibold">
-                        ${h.monto}
-                      </p>
+                      <p className="text-green-600 font-semibold">${h.monto}</p>
                     )}
                   </div>
                 ))}
@@ -161,7 +186,6 @@ export default function HistorialUsuario() {
             </button>
           </div>
         )}
-
       </div>
     </div>
   );

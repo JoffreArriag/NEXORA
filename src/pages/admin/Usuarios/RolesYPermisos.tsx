@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { db } from "../../../firebase/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import Toast from "../../../components/Toast";
 
 interface Permisos {
@@ -21,11 +28,10 @@ export default function RolesYPermisos() {
   const [roles, setRoles] = useState<Rol[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(null);
-
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
+  const [modoCrear, setModoCrear] = useState(false);
 
-  // Cargar roles desde Firestore
   useEffect(() => {
     const cargarRoles = async () => {
       try {
@@ -45,12 +51,10 @@ export default function RolesYPermisos() {
     cargarRoles();
   }, []);
 
-  // Buscador
   const sugerencias = roles.filter((r) =>
     r.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  // Guardar cambios
   const guardarCambios = async () => {
     if (!rolSeleccionado) return;
 
@@ -75,6 +79,46 @@ export default function RolesYPermisos() {
     }
   };
 
+  const crearRol = async () => {
+    if (!rolSeleccionado) return;
+
+    try {
+      const data = {
+        nombre: rolSeleccionado.nombre,
+        descripcion: rolSeleccionado.descripcion,
+        permisos: rolSeleccionado.permisos,
+      };
+
+      const docRef = await addDoc(collection(db, "roles"), data);
+      setRoles((prev) => [...prev, { ...data, id: docRef.id }]);
+
+      setToastMessage("Rol creado correctamente");
+      setToastType("success");
+      setRolSeleccionado(null);
+      setModoCrear(false);
+    } catch (error) {
+      console.error(error);
+      setToastMessage("Error al crear rol");
+      setToastType("error");
+    }
+  };
+
+  const eliminarRol = async () => {
+    if (!rolSeleccionado) return;
+
+    try {
+      await deleteDoc(doc(db, "roles", rolSeleccionado.id));
+      setRoles((prev) => prev.filter((r) => r.id !== rolSeleccionado.id));
+      setToastMessage("Rol eliminado correctamente");
+      setToastType("success");
+      setRolSeleccionado(null);
+    } catch (error) {
+      console.error(error);
+      setToastMessage("Error al eliminar rol");
+      setToastType("error");
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col bg-transparent">
       <h2 className="text-3xl font-bold mb-6 text-neutral-950">
@@ -93,6 +137,26 @@ export default function RolesYPermisos() {
           }}
           className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
         />
+
+        <button
+          onClick={() => {
+            setModoCrear(true);
+            setRolSeleccionado({
+              id: "",
+              nombre: "",
+              descripcion: "",
+              permisos: {
+                crear: false,
+                editar: false,
+                eliminar: false,
+                ver: false,
+              },
+            });
+          }}
+          className="bg-red-600 text-white px-6 py-2 rounded-xl hover:bg-red-700"
+        >
+          + Nuevo Rol
+        </button>
       </div>
 
       <div className="bg-white/10 p-8 rounded-3xl min-h-[400px] flex flex-col gap-6 overflow-y-auto">
@@ -109,9 +173,7 @@ export default function RolesYPermisos() {
               >
                 <div>
                   <p className="font-semibold text-neutral-950">{r.nombre}</p>
-                  <p className="text-sm text-neutral-700">
-                    {r.descripcion}
-                  </p>
+                  <p className="text-sm text-neutral-700">{r.descripcion}</p>
                 </div>
                 <p className="text-sm text-neutral-950">
                   {Object.entries(r.permisos)
@@ -122,13 +184,10 @@ export default function RolesYPermisos() {
               </div>
             ))
           ) : (
-            <p className="text-neutral-950 text-lg">
-              No se encontraron roles
-            </p>
+            <p className="text-neutral-950 text-lg">No se encontraron roles</p>
           )
         ) : (
           <div className="space-y-6">
-
             {/* Información del Rol */}
             <div className="bg-white p-8 rounded-3xl shadow-md space-y-6">
               <h3 className="text-2xl font-bold text-neutral-950">
@@ -157,9 +216,7 @@ export default function RolesYPermisos() {
 
             {/* Permisos */}
             <div className="bg-white p-8 rounded-3xl shadow-md space-y-4">
-              <h3 className="text-2xl font-bold text-neutral-950">
-                Permisos
-              </h3>
+              <h3 className="text-2xl font-bold text-neutral-950">Permisos</h3>
               <div className="grid grid-cols-2 gap-4">
                 <Checkbox
                   label="Crear"
@@ -207,16 +264,27 @@ export default function RolesYPermisos() {
             {/* Botones */}
             <div className="flex gap-4 justify-end">
               <button
-                type="button"
-                onClick={guardarCambios}
-                className="bg-red-600 text-white font-semibold px-6 py-2 rounded-xl hover:bg-red-700 transition-colors"
+                onClick={modoCrear ? crearRol : guardarCambios}
+                className="bg-red-600 text-white font-semibold px-6 py-2 rounded-xl hover:bg-red-700"
               >
-                Guardar Cambios
+                {modoCrear ? "Crear Rol" : "Guardar Cambios"}
               </button>
+
+              {!modoCrear && (
+                <button
+                  onClick={eliminarRol}
+                  className="bg-gray-700 text-white px-6 py-2 rounded-xl hover:bg-gray-800"
+                >
+                  Eliminar Rol
+                </button>
+              )}
+
               <button
-                type="button"
-                onClick={() => setRolSeleccionado(null)}
-                className="bg-gray-300 text-neutral-950 font-semibold px-6 py-2 rounded-xl hover:bg-gray-400 transition-colors"
+                onClick={() => {
+                  setRolSeleccionado(null);
+                  setModoCrear(false);
+                }}
+                className="bg-gray-300 text-neutral-950 font-semibold px-6 py-2 rounded-xl hover:bg-gray-400"
               >
                 Cancelar
               </button>
